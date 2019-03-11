@@ -1,0 +1,112 @@
+{
+  "dataset_reader": {
+    "type": "coref",
+    "token_indexers": {
+      "tokens": {
+        "type": "single_id",
+        "lowercase_tokens": false
+      },
+      "token_characters": {
+        "type": "characters"
+      }
+    },
+    "max_span_width": 2,
+    "features": [
+      "pos_tags"
+    ]
+
+  },
+  "train_data_path": "/data/rywu/data/coref_english/Kbp_train_english.txt",
+  "validation_data_path":"/data/rywu/data/coref_english/Kbp_dev_english.txt",
+  "test_data_path": "/data/rywu/data/coref_english/Kbp_test_english.txt",
+  "model": {
+    "type": "coref",
+    "text_field_embedder": {
+      "tokens": {
+        "type": "embedding",
+        "pretrained_file": "/data/rywu/data/embeddings/glove.840B.300d.txt.gz",
+        "embedding_dim": 300,
+        "trainable": false
+      },
+      "token_characters": {
+        "type": "character_encoding",
+        "embedding": {
+          "num_embeddings": 262,
+          "embedding_dim": 16
+        },
+        "encoder": {
+          "type": "cnn",
+          "embedding_dim": 16,
+          "num_filters": 100,
+          "ngram_filter_sizes": [5]
+        }
+      }
+    },
+    "context_layer": {
+      "type": "lstm",
+      "bidirectional": true,
+      "input_size": 420,
+      "hidden_size": 200,
+      "num_layers": 1,
+      "dropout": 0.2
+    },
+    "mention_feedforward": {
+      "input_dim": 1220,
+      "num_layers": 2,
+      "hidden_dims": 150,
+      "activations": "relu",
+      "dropout": 0.2
+    },
+    "antecedent_feedforward": {
+      "input_dim": 3720,
+      "num_layers": 2,
+      "hidden_dims": 150,
+      "activations": "relu",
+      "dropout": 0.2
+    },
+    "initializer": [
+        [".*linear_layers.*weight", {"type": "xavier_normal"}],
+        [".*scorer._module.weight", {"type": "xavier_normal"}],
+        ["_distance_embedding.weight", {"type": "xavier_normal"}],
+        ["_span_width_embedding.weight", {"type": "xavier_normal"}],
+        ["_context_layer._module.weight_ih.*", {"type": "xavier_normal"}],
+        ["_context_layer._module.weight_hh.*", {"type": "orthogonal"}]
+    ],
+    "lexical_dropout": 0.1,
+    "dropout": 0.2,
+    "feature_size": 20,
+    "max_span_width": 2,
+    "spans_per_word": 0.2,
+    "max_antecedents": 150,
+    "constraint_type": "BIO",
+    "include_start_end_transitions": true,
+    "features": [
+      "pos_tags"
+//      "trigger_tags",
+//      "realies_tags"
+    ]
+  },
+  "iterator": {
+    "type": "bucket",
+    "sorting_keys": [["text", "num_tokens"]],
+    "padding_noise": 0.0,
+    "batch_size": 1
+  },
+  "trainer": {
+    "num_epochs": 50,
+    "grad_norm": 5.0,
+    "patience": 10,
+    "cuda_device": 2,
+    "validation_metric": "+coref_f1",
+    "learning_rate_scheduler": {
+      "type": "reduce_on_plateau",
+      "factor": 0.1,
+      "mode": "max",
+      "patience": 5
+    },
+    "optimizer": {
+      "type": "adam",
+       "lr": 0.0001
+    }
+  }
+}
